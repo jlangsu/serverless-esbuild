@@ -99,28 +99,26 @@ async function bundle(incremental = false) {
             }
         }
         let buildProcess = esbuild_1.build;
-        await Promise.resolve().then(() => __importStar(require('esbuild'))).then((pkg) => {
-            if (pkg.context) {
-                delete config.incremental;
-                if (!this.buildOptions?.disableIncremental) {
-                    buildProcess = pkg.context;
-                }
+        const pkg = await Promise.resolve().then(() => __importStar(require('esbuild')));
+        if (pkg.context) {
+            delete config.incremental;
+            if (!this.buildOptions?.disableIncremental) {
+                buildProcess = pkg.context;
             }
-            else {
-                buildProcess = esbuild_1.build;
-            }
-        })
-            .catch(() => {
-            buildProcess = esbuild_1.build;
-        });
-        if (typeof buildProcess === 'undefined') {
-            buildProcess = esbuild_1.build;
         }
-        const result = await buildProcess({
+        // Need to manually trigger the build if using the new API context.
+        const ctx = await buildProcess({
             ...config,
             entryPoints: [entry],
             outdir: path_1.default.join(buildDirPath, path_1.default.dirname(entry)),
         });
+        let result;
+        if (ctx?.rebuild) {
+            result = await ctx.rebuild();
+        }
+        else {
+            result = ctx;
+        }
         if (config.metafile) {
             fs_extra_1.default.writeFileSync(path_1.default.join(buildDirPath, `${(0, utils_1.trimExtension)(entry)}-meta.json`), JSON.stringify(result.metafile, null, 2));
         }

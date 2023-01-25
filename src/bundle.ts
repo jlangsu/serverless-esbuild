@@ -95,30 +95,26 @@ export async function bundle(this: EsbuildServerlessPlugin, incremental = false)
     }
 
     let buildProcess = build;
-    await import('esbuild')
-      .then((pkg: any) => {
-        if (pkg.context) {
-          delete config.incremental;
-          if (!this.buildOptions?.disableIncremental) {
-            buildProcess = pkg.context;
-          }
-        } else {
-          buildProcess = build;
-        }
-      })
-      .catch(() => {
-        buildProcess = build;
-      });
-
-    if (typeof buildProcess === 'undefined') {
-      buildProcess = build;
+    const pkg: any = await import('esbuild');
+    if (pkg.context) {
+      delete config.incremental;
+      if (!this.buildOptions?.disableIncremental) {
+        buildProcess = pkg.context;
+      }
     }
 
-    const result = await buildProcess({
+    // Need to manually trigger the build if using the new API context.
+    const ctx: any = await buildProcess({
       ...config,
       entryPoints: [entry],
       outdir: path.join(buildDirPath, path.dirname(entry)),
     });
+    let result;
+    if (ctx?.rebuild) {
+      result = await ctx.rebuild();
+    } else {
+      result = ctx;
+    }
 
     if (config.metafile) {
       fs.writeFileSync(
