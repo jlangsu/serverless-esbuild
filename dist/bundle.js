@@ -98,10 +98,13 @@ async function bundle(incremental = false) {
                 return { bundlePath, entry, result };
             }
         }
-        let buildProcess;
+        let buildProcess = esbuild_1.build;
         await Promise.resolve().then(() => __importStar(require('esbuild'))).then((pkg) => {
             if (pkg.context) {
-                buildProcess = pkg.context;
+                delete config.incremental;
+                if (!this.buildOptions?.disableIncremental) {
+                    buildProcess = pkg.context;
+                }
             }
             else {
                 buildProcess = esbuild_1.build;
