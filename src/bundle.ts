@@ -49,7 +49,7 @@ export async function bundle(this: EsbuildServerlessPlugin, incremental = false)
     return rest;
   }, this.buildOptions);
 
-  const config: Omit<BuildOptions, 'watch'> & { incremental: boolean } = {
+  const config: Omit<BuildOptions, 'watch'> & { incremental?: boolean } = {
     ...esbuildOptions,
     incremental,
     external: [...getStringArray(this.buildOptions?.external), ...(exclude.includes('*') ? [] : exclude)],
@@ -94,11 +94,14 @@ export async function bundle(this: EsbuildServerlessPlugin, incremental = false)
       }
     }
 
-    let buildProcess;
+    let buildProcess = build;
     await import('esbuild')
       .then((pkg: any) => {
         if (pkg.context) {
-          buildProcess = pkg.context;
+          delete config.incremental;
+          if (!this.buildOptions?.disableIncremental) {
+            buildProcess = pkg.context;
+          }
         } else {
           buildProcess = build;
         }
