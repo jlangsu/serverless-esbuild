@@ -116,6 +116,9 @@ async function bundle(incremental = false) {
                 context = await pkg.context(options);
                 result = await context?.rebuild();
             }
+            else {
+                result = await (0, esbuild_1.build)(options);
+            }
         }
         else {
             result = await (0, esbuild_1.build)(options);
