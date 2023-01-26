@@ -208,7 +208,8 @@ it('should filter out non esbuild options', async () => {
   };
 
   const proxy = await getBuild();
-  if (proxy.rebuild) delete config.incremental;
+  const pkg: any = await import('esbuild');
+  if (pkg.context) delete config.incremental;
 
   expect(proxy).toBeCalledWith(config);
 });

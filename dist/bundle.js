@@ -111,7 +111,7 @@ async function bundle(incremental = false) {
         let result;
         const pkg = await Promise.resolve().then(() => __importStar(require('esbuild')));
         if (pkg.context) {
-            delete config.incremental;
+            delete options.incremental;
             if (!this.buildOptions?.disableIncremental) {
                 context = await pkg.context(options);
                 result = await context?.rebuild();
