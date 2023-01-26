@@ -107,17 +107,18 @@ async function bundle(incremental = false) {
             }
         }
         // Need to manually trigger the build if using the new API context.
-        const ctx = await buildProcess({
+        const context = await buildProcess({
             ...config,
             entryPoints: [entry],
             outdir: path_1.default.join(buildDirPath, path_1.default.dirname(entry)),
         });
         let result;
-        if (ctx?.rebuild) {
-            result = await ctx.rebuild();
+        if (context?.dispose) {
+            result = await context.rebuild();
+            context.dispose();
         }
         else {
-            result = ctx;
+            result = context;
         }
         if (config.metafile) {
             fs_extra_1.default.writeFileSync(path_1.default.join(buildDirPath, `${(0, utils_1.trimExtension)(entry)}-meta.json`), JSON.stringify(result.metafile, null, 2));

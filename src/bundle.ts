@@ -104,16 +104,17 @@ export async function bundle(this: EsbuildServerlessPlugin, incremental = false)
     }
 
     // Need to manually trigger the build if using the new API context.
-    const ctx: any = await buildProcess({
+    const context: any = await buildProcess({
       ...config,
       entryPoints: [entry],
       outdir: path.join(buildDirPath, path.dirname(entry)),
     });
     let result;
-    if (ctx?.rebuild) {
-      result = await ctx.rebuild();
+    if (context?.dispose) {
+      result = await context.rebuild();
+      context.dispose();
     } else {
-      result = ctx;
+      result = context;
     }
 
     if (config.metafile) {
