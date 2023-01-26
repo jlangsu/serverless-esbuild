@@ -195,7 +195,6 @@ it('should filter out non esbuild options', async () => {
   const plugin = esbuildPlugin({ functionEntries });
 
   await bundle.call(plugin);
-  const proxy = await getBuild();
 
   const config: any = {
     bundle: true,
@@ -208,13 +207,8 @@ it('should filter out non esbuild options', async () => {
     target: 'node12',
   };
 
-  const isOldAPI = await (async () => {
-    const pkg: any = await import('esbuild');
-    if (pkg.context) return false;
-    return true;
-  })();
-
-  if (!isOldAPI) delete config.incremental;
+  const proxy = await getBuild();
+  if (proxy.rebuild) delete config.incremental;
 
   expect(proxy).toBeCalledWith(config);
 });

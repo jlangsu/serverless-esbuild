@@ -92,38 +92,38 @@ async function bundle(incremental = false) {
         const bundlePath = entry.slice(0, entry.lastIndexOf('.')) + buildOptions.outputFileExtension;
         // check cache
         if (this.buildCache) {
-            const { result } = this.buildCache[entry] ?? {};
-            if (result?.rebuild && !this.buildOptions?.disableIncremental) {
+            const { result, context } = this.buildCache[entry] ?? {};
+            if (result?.rebuild) {
                 await result.rebuild();
                 return { bundlePath, entry, result };
             }
+            if (context?.rebuild) {
+                const rebuild = await context.rebuild();
+                return { bundlePath, entry, context, result: rebuild };
+            }
         }
-        let buildProcess = esbuild_1.build;
+        const options = {
+            ...config,
+            entryPoints: [entry],
+            outdir: path_1.default.join(buildDirPath, path_1.default.dirname(entry)),
+        };
+        let context;
+        let result;
         const pkg = await Promise.resolve().then(() => __importStar(require('esbuild')));
         if (pkg.context) {
             delete config.incremental;
             if (!this.buildOptions?.disableIncremental) {
-                buildProcess = pkg.context;
+                context = await pkg.context(options);
+                result = await context?.rebuild();
             }
         }
-        // Need to manually trigger the build if using the new API context.
-        const context = await buildProcess({
-            ...config,
-            entryPoints: [entry],
-            outdir: path_1.default.join(buildDirPath, path_1.default.dirname(entry)),
-        });
-        let result;
-        if (context?.dispose) {
-            result = await context.rebuild();
-            context.dispose();
-        }
         else {
-            result = context;
+            result = await (0, esbuild_1.build)(options);
         }
         if (config.metafile) {
             fs_extra_1.default.writeFileSync(path_1.default.join(buildDirPath, `${(0, utils_1.trimExtension)(entry)}-meta.json`), JSON.stringify(result.metafile, null, 2));
         }
-        return { bundlePath, entry, result };
+        return { bundlePath, entry, result, context };
     };
     // Files can contain multiple handlers for multiple functions, we want to get only the unique ones
     const uniqueFiles = (0, ramda_1.uniq)(this.functionEntries.map(({ entry }) => entry));
@@ -146,6 +146,10 @@ async function bundle(incremental = false) {
         return { bundlePath, func, functionAlias };
     })
         .filter((result) => typeof result === 'object');
+    // dispose of long-running build contexts
+    Object.entries(this.buildCache).forEach((entry) => {
+        entry[1].context?.dispose();
+    });
     this.log.verbose('Compiling completed.');
 }
 exports.bundle = bundle;
