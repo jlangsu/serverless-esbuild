@@ -78,9 +78,9 @@ interface ServeOnRequestArgs {
   /** The time to generate the response, not to send it */
   timeInMS: number;
 }
-export interface BuildContext<SpecificOptions extends BuildOptions = BuildOptions> {
+export interface BuildContext {
   /** Documentation: https://esbuild.github.io/api/#rebuild */
-  rebuild(): Promise<BuildResult<SpecificOptions>>;
+  rebuild(): Promise<BuildResult>;
   /** Documentation: https://esbuild.github.io/api/#watch */
   watch(options?: {}): Promise<void>;
   /** Documentation: https://esbuild.github.io/api/#serve */
