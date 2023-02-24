@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import globby from 'globby';
 
-import { concat, mergeRight } from 'ramda';
+import { concat, mergeDeepRight } from 'ramda';
 import type Serverless from 'serverless';
 import type ServerlessPlugin from 'serverless/classes/Plugin';
 import chokidar from 'chokidar';
@@ -277,6 +277,9 @@ class EsbuildServerlessPlugin implements ServerlessPlugin {
       watch: {
         pattern: './**/*.(js|ts)',
         ignore: [WORK_FOLDER, 'dist', 'node_modules', BUILD_FOLDER],
+        chokidar: {
+          ignoreInitial: true,
+        },
       },
       keepOutputDirectory: false,
       platform: 'node',
@@ -293,8 +296,8 @@ class EsbuildServerlessPlugin implements ServerlessPlugin {
     const resolvedOptions = {
       ...(target ? { target } : {}),
     };
-    const withDefaultOptions = mergeRight(DEFAULT_BUILD_OPTIONS);
-    const withResolvedOptions = mergeRight(withDefaultOptions(resolvedOptions));
+    const withDefaultOptions = mergeDeepRight(DEFAULT_BUILD_OPTIONS);
+    const withResolvedOptions = mergeDeepRight(withDefaultOptions(resolvedOptions));
 
     const configPath: string | undefined = this.serverless.service.custom?.esbuild?.config;
 
@@ -302,7 +305,7 @@ class EsbuildServerlessPlugin implements ServerlessPlugin {
 
     return withResolvedOptions<Configuration>(
       config ? config(this.serverless) : this.serverless.service.custom?.esbuild ?? {}
-    );
+    ) as Configuration;
   }
 
   get functionEntries() {
@@ -313,18 +316,17 @@ class EsbuildServerlessPlugin implements ServerlessPlugin {
     assert(this.buildOptions, 'buildOptions is not defined');
 
     const defaultPatterns = asArray(this.buildOptions.watch.pattern).filter(isString);
-
-    const options = {
-      ignored: asArray(this.buildOptions.watch.ignore).filter(isString),
-      awaitWriteFinish: true,
-      ignoreInitial: true,
-    };
+    const defaultIgnored = asArray(this.buildOptions.watch.ignore).filter(isString);
 
     const { patterns, ignored } = this.packagePatterns;
 
     const allPatterns: string[] = [...defaultPatterns, ...patterns];
+    const allIgnored: string[] = [...defaultIgnored, ...ignored];
 
-    options.ignored = [...options.ignored, ...ignored];
+    const options = {
+      ignored: allIgnored,
+      ...this.buildOptions.watch.chokidar,
+    };
 
     chokidar.watch(allPatterns, options).on('all', (eventName, srcPath) =>
       this.bundle(true)
